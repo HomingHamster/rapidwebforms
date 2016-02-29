@@ -39,11 +39,7 @@ contact_form = {
 		{"type":"text", 		"name": "second field"},
 		{"type":"seperator"},
 		{"type":"text", 		"name": "age"},
-<<<<<<< HEAD
 		{"type":"select", 		"name": "selectoption", 	"options":["option1", "secondoption", "333333"]},
-=======
-		{"type":"select", 		"name": "selectoption", 	"values":["option1", "secondoption", "333333"]},
->>>>>>> origin/master
 	]
 }
 

@@ -18,19 +18,11 @@ class RapidServer(http.server.BaseHTTPRequestHandler):
         for i in form["fields"]:
             if "name" in i.keys() and "type" in i.keys():
 
-<<<<<<< HEAD
                 field = {"name":i["name"], "field_type":i["type"]}
                 if "options" in i.keys():
                     field["options"] = i["options"]
 
                 fields+=[Field(**field)]
-=======
-                field = [i["name"], i["type"]]
-                if "options" in i.keys():
-                    field+=[i["options"]]
-
-                fields+=[Field(*field)]
->>>>>>> origin/master
 
         html_form = Form(form["name"], form["description"], fields).as_html()
 
@@ -96,11 +88,7 @@ class Field():
 
         if self.field_type == "select":
 
-<<<<<<< HEAD
             opts = " ".join(["<option>" + o + "</option>" for o in self.options])
-=======
-            opts = ["<option>" + o + "</option>" for o in options].join(" ")
->>>>>>> origin/master
 
             html = """
                 <label for="%s">%s</label>
