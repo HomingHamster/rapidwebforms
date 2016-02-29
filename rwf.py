@@ -3,6 +3,7 @@
 import uuid
 import time
 import http.server
+from string import Template
 
 # Name your configuration file
 import examplewebsite as config
@@ -16,13 +17,15 @@ class RapidServer(http.server.BaseHTTPRequestHandler):
         fields = []
 
         for i in form["fields"]:
-            if "name" in i.keys() and "type" in i.keys():
+            field={}
+            if "name" in i.keys():
+                field["name"] = i["name"]
+            if "type" in i.keys():
+                field["field_type"] = i["type"]
+            if "options" in i.keys():
+                field["options"] = i["options"]
 
-                field = {"name":i["name"], "field_type":i["type"]}
-                if "options" in i.keys():
-                    field["options"] = i["options"]
-
-                fields+=[Field(**field)]
+            fields+=[Field(**field)]
 
         html_form = Form(form["name"], form["description"], fields).as_html()
 
@@ -42,12 +45,11 @@ class RapidServer(http.server.BaseHTTPRequestHandler):
             if self.path == uri_key:
                 conf=config.active_forms[uri_key]
 
-                self.wfile.write(bytes(('<html><head><title>%s</title><link rel="stylesheet" '
-                        'href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css"><meta name="viewport"'
-                        ' content="width=device-width, initial-scale=1"><style>body{padding:40px;}'
-                        '</style></head><body><div class="content">') % (conf["name"]), "utf-8"))
-                self.wfile.write(bytes(self._renderform(conf), "utf-8"))
-                self.wfile.write(bytes("</div><center><p>RapidWebForms v0.01</p></center></body></html>", "utf-8"))
+                form_template = open("templates/default/page.html").read()
+                form_template = Template(form_template).safe_substitute(title=conf["name"],
+                    content=self._renderform(conf))
+
+                self.wfile.write(bytes(form_template, "utf-8"))
 
     #def do_POST(self, )
 
@@ -62,22 +64,15 @@ class Form():
         for i in self.fields:
             fields_html += i.as_html()
 
-        html="""
-            <form class="pure-form pure-form-stacked">
-                <fieldset>
-                    <legend><h1>%s</h1><p>%s</p></legend>
-                    %s
-                    <button type="submit" class="pure-button pure-button-primary">Finished</button>
-                </fieldset>
-            </form>
-        """ % (self.name, self.desc, fields_html)
-        return html
+        return Template(open("templates/default/form.html").read()).safe_substitute(title=self.name,
+            description=self.desc, items=fields_html)
+
 
 class Field():
     """
     This class is responsible for containing each form field and outputting the html representation.
     """
-    def __init__(self, name, field_type, initial_value=None, options=None):
+    def __init__(self, field_type, name=None, initial_value=None, options=None):
         self.name = name
         self.field_type = field_type
         self.initial_value = initial_value
@@ -88,37 +83,30 @@ class Field():
 
         if self.field_type == "select":
 
-            opts = " ".join(["<option>" + o + "</option>" for o in self.options])
+            opts = " ".join([Template(open("templates/default/partials/option.select.form.html").read())
+                    .safe_substitute(option=o) for o in self.options])
 
-            html = """
-                <label for="%s">%s</label>
-                    <select id="%s">
-                        %s 
-                    </select>
-            """ % (self.field_id, self.name, self.field_id, opts)
+            html = Template(open("templates/default/partials/select.form.html").read()).safe_substitute(
+                    id=self.field_id, name=self.name, optionshtml=opts)
 
         elif self.field_type == "checkbox":
 
-            html = """
-                <label for="%s" class="pure-checkbox">
-                    <input id="%s" type="checkbox"> %s
-                </label>
-            """ % (self.field_id, self.field_id, self.name)
+            html = Template(open("templates/default/partials/checkbox.form.html").read())\
+                    .safe_substitute(id=self.field_id, name=self.name)
 
         elif self.field_type == "seperator":
 
-            html = "<hr />"
+            html = open("templates/default/partials/seperator.form.html").read()
 
         else:
 
-            html = """
-                <label for="%s">%s</label>
-                <input id="%s" type="%s" placeholder="%s">
-            """ % (self.field_id, self.name, self.field_id, self.field_type, self.initial_value)
+            html = Template(open("templates/default/partials/input.form.html").read())\
+                    .safe_substitute(id=self.field_id, name=self.name, fieldtype=self.field_type,
+                        placeholder=self.initial_value)
 
         return html
 
-if __name__=="__main__":
+if __name__ == "__main__":
 
     server_class = http.server.HTTPServer
     httpd = server_class((config.server_address, config.server_port), RapidServer)
